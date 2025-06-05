@@ -1,0 +1,679 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BU362 -- Perceptual Mapping</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 20px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+            overflow: hidden;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+
+        .header h1 {
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+            text-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+        }
+
+        .header p {
+            font-size: 1.1rem;
+            opacity: 0.9;
+        }
+
+        .main-content {
+            display: grid;
+            grid-template-columns: 350px 1fr;
+            min-height: 700px;
+        }
+
+        .controls {
+            background: #f8f9fa;
+            padding: 30px;
+            border-right: 1px solid #e9ecef;
+        }
+
+        .control-group {
+            margin-bottom: 30px;
+        }
+
+        .control-group h3 {
+            color: #495057;
+            margin-bottom: 15px;
+            font-size: 1.2rem;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .control-group h3::before {
+            content: "⚙️";
+            font-size: 1rem;
+        }
+
+        .axis-controls {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+        }
+
+        .axis-control {
+            background: white;
+            padding: 15px;
+            border-radius: 10px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        }
+
+        .axis-control label {
+            display: block;
+            font-weight: 600;
+            color: #495057;
+            margin-bottom: 8px;
+            font-size: 0.9rem;
+        }
+
+        .axis-control input {
+            width: 100%;
+            padding: 8px 12px;
+            border: 2px solid #e9ecef;
+            border-radius: 6px;
+            font-size: 0.9rem;
+            transition: border-color 0.3s;
+        }
+
+        .axis-control input:focus {
+            outline: none;
+            border-color: #4facfe;
+        }
+
+        .item-controls {
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        }
+
+        .add-item {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            margin-bottom: 20px;
+            width: 100%;
+        }
+
+        .add-item input {
+            flex: 1;
+            padding: 10px 15px;
+            border: 2px solid #e9ecef;
+            border-radius: 8px;
+            font-size: 1rem;
+            transition: border-color 0.3s;
+        }
+
+        .add-item input:focus {
+            outline: none;
+            border-color: #4facfe;
+        }
+
+        .add-item button {
+            padding: 10px 20px;
+            background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: transform 0.2s;
+            flex-shrink: 0;
+        }
+
+        .add-item button:hover {
+            transform: translateY(-2px);
+        }
+
+        .selected-item-controls {
+            background: #e3f2fd;
+            border: 2px solid #2196f3;
+            border-radius: 10px;
+            padding: 15px;
+            margin-bottom: 20px;
+            display: none;
+        }
+
+        .selected-item-controls.active {
+            display: block;
+        }
+
+        .selected-item-controls h4 {
+            color: #1976d2;
+            margin-bottom: 15px;
+            font-size: 1.1rem;
+        }
+
+        .item-name-edit {
+            margin-bottom: 15px;
+        }
+
+        .item-name-edit input {
+            width: 100%;
+            padding: 8px 12px;
+            border: 2px solid #2196f3;
+            border-radius: 6px;
+            font-size: 1rem;
+        }
+
+        .sliders {
+            margin-top: 10px;
+        }
+
+        .slider-group {
+            margin-bottom: 15px;
+        }
+
+        .slider-group label {
+            display: block;
+            font-weight: 600;
+            color: #495057;
+            margin-bottom: 8px;
+        }
+
+        .slider {
+            width: 100%;
+            height: 6px;
+            border-radius: 3px;
+            background: #e9ecef;
+            outline: none;
+            appearance: none;
+        }
+
+        .slider::-webkit-slider-thumb {
+            appearance: none;
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+            cursor: pointer;
+            box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
+        }
+
+        .slider::-moz-range-thumb {
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+            cursor: pointer;
+            border: none;
+            box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
+        }
+
+        .item-list {
+            max-height: 200px;
+            overflow-y: auto;
+        }
+
+        .item {
+            background: #f8f9fa;
+            padding: 12px;
+            margin-bottom: 10px;
+            border-radius: 8px;
+            border-left: 4px solid #4facfe;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .item:hover {
+            background: #e9ecef;
+            transform: translateX(5px);
+        }
+
+        .item.selected {
+            background: #e3f2fd;
+            border-left-color: #2196f3;
+        }
+
+        .item-name {
+            font-weight: 600;
+            color: #495057;
+            margin-bottom: 5px;
+        }
+
+        .item-coords {
+            font-size: 0.8rem;
+            color: #6c757d;
+        }
+
+        .delete-btn {
+            background: #dc3545;
+            color: white;
+            border: none;
+            padding: 5px 10px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 0.8rem;
+            margin-left: 10px;
+            transition: background 0.3s;
+        }
+
+        .delete-btn:hover {
+            background: #c82333;
+        }
+
+        .map-container {
+            padding: 30px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .perceptual-map {
+            width: 600px;
+            height: 600px;
+            border: 3px solid #495057;
+            position: relative;
+            background: linear-gradient(45deg, #f8f9fa 25%, transparent 25%, transparent 75%, #f8f9fa 75%, #f8f9fa),
+                        linear-gradient(45deg, #f8f9fa 25%, transparent 25%, transparent 75%, #f8f9fa 75%, #f8f9fa);
+            background-size: 20px 20px;
+            background-position: 0 0, 10px 10px;
+            border-radius: 10px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+        }
+
+        .axis-line {
+            position: absolute;
+            background: #495057;
+        }
+
+        .axis-line.vertical {
+            width: 2px;
+            height: 100%;
+            left: 50%;
+            transform: translateX(-50%);
+        }
+
+        .axis-line.horizontal {
+            height: 2px;
+            width: 100%;
+            top: 50%;
+            transform: translateY(-50%);
+        }
+
+        .axis-label {
+            position: absolute;
+            font-weight: 600;
+            color: #495057;
+            font-size: 1rem;
+            padding: 8px 12px;
+            background: white;
+            border-radius: 6px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+            white-space: nowrap;
+        }
+
+        .axis-label.top {
+            top: 10px;
+            left: 50%;
+            transform: translateX(-50%);
+        }
+
+        .axis-label.bottom {
+            bottom: 10px;
+            left: 50%;
+            transform: translateX(-50%);
+        }
+
+        .axis-label.left {
+            left: 10px;
+            top: 50%;
+            transform: translateY(-50%);
+        }
+
+        .axis-label.right {
+            right: 10px;
+            top: 50%;
+            transform: translateY(-50%);
+        }
+
+        .map-item {
+            position: absolute;
+            background: linear-gradient(135deg, #ff6b6b 0%, #feca57 100%);
+            color: white;
+            padding: 8px 12px;
+            border-radius: 20px;
+            font-weight: 600;
+            font-size: 0.9rem;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+            transform: translate(-50%, -50%);
+            cursor: pointer;
+            transition: all 0.3s;
+            border: 2px solid transparent;
+        }
+
+        .map-item:hover {
+            transform: translate(-50%, -50%) scale(1.1);
+            box-shadow: 0 6px 20px rgba(0, 0, 0, 0.3);
+        }
+
+        .map-item.selected {
+            border-color: #fff;
+            background: linear-gradient(135deg, #2196f3 0%, #21cbf3 100%);
+            box-shadow: 0 0 20px rgba(33, 150, 243, 0.5);
+        }
+
+        @media (max-width: 1200px) {
+            .main-content {
+                grid-template-columns: 1fr;
+            }
+            
+            .perceptual-map {
+                width: 500px;
+                height: 500px;
+            }
+        }
+
+        @media (max-width: 768px) {
+            .perceptual-map {
+                width: 400px;
+                height: 400px;
+            }
+            
+            .axis-controls {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>BU362: Perceptual Map Creator</h1>
+            <p>Customize your perceptual map</p>
+        </div>
+        
+        <div class="main-content">
+            <div class="controls">
+                <div class="control-group">
+                    <h3>Axis Labels</h3>
+                    <div class="axis-controls">
+                        <div class="axis-control">
+                            <label>Top (Y+)</label>
+                            <input type="text" id="topLabel" value="High Quality">
+                        </div>
+                        <div class="axis-control">
+                            <label>Bottom (Y-)</label>
+                            <input type="text" id="bottomLabel" value="Low Quality">
+                        </div>
+                        <div class="axis-control">
+                            <label>Left (X-)</label>
+                            <input type="text" id="leftLabel" value="Low Price">
+                        </div>
+                        <div class="axis-control">
+                            <label>Right (X+)</label>
+                            <input type="text" id="rightLabel" value="High Price">
+                        </div>
+                    </div>
+                </div>
+
+                <div class="control-group">
+                    <h3>Add Items</h3>
+                    <div class="item-controls">
+                        <div class="add-item">
+                            <input type="text" id="itemName" placeholder="Enter item name">
+                            <button onclick="addItem()">Add</button>
+                        </div>
+                        
+                        <div class="selected-item-controls" id="selectedItemControls">
+                            <h4>Edit Selected Item</h4>
+                            <div class="item-name-edit">
+                                <label>Item Name:</label>
+                                <input type="text" id="selectedItemName" placeholder="Item name">
+                            </div>
+                            
+                            <div class="sliders">
+                                <div class="slider-group">
+                                    <label>X Position: <span id="xValue">0</span></label>
+                                    <input type="range" id="xSlider" class="slider" min="-100" max="100" value="0">
+                                </div>
+                                <div class="slider-group">
+                                    <label>Y Position: <span id="yValue">0</span></label>
+                                    <input type="range" id="ySlider" class="slider" min="-100" max="100" value="0">
+                                </div>
+                            </div>
+                            
+                            <button class="delete-btn" onclick="deleteSelectedItem()">Delete Item</button>
+                        </div>
+                        
+                        <div class="item-list" id="itemList"></div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="map-container">
+                <div class="perceptual-map" id="perceptualMap">
+                    <div class="axis-line vertical"></div>
+                    <div class="axis-line horizontal"></div>
+                    <div class="axis-label top" id="topAxisLabel">High Quality</div>
+                    <div class="axis-label bottom" id="bottomAxisLabel">Low Quality</div>
+                    <div class="axis-label left" id="leftAxisLabel">Low Price</div>
+                    <div class="axis-label right" id="rightAxisLabel">High Price</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let items = [];
+        let selectedItem = null;
+
+        // Initialize with some sample data
+        items = [
+        ];
+
+        // Update axis labels automatically
+        function updateAxisLabels() {
+            document.getElementById('topAxisLabel').textContent = 
+                document.getElementById('topLabel').value || 'High Quality';
+            document.getElementById('bottomAxisLabel').textContent = 
+                document.getElementById('bottomLabel').value || 'Low Quality';
+            document.getElementById('leftAxisLabel').textContent = 
+                document.getElementById('leftLabel').value || 'Low Price';
+            document.getElementById('rightAxisLabel').textContent = 
+                document.getElementById('rightLabel').value || 'High Price';
+        }
+
+        // Add event listeners for automatic axis label updates
+        document.getElementById('topLabel').addEventListener('input', updateAxisLabels);
+        document.getElementById('bottomLabel').addEventListener('input', updateAxisLabels);
+        document.getElementById('leftLabel').addEventListener('input', updateAxisLabels);
+        document.getElementById('rightLabel').addEventListener('input', updateAxisLabels);
+
+        // Selected item name change handler
+        document.getElementById('selectedItemName').addEventListener('input', function() {
+            if (selectedItem !== null) {
+                items[selectedItem].name = this.value;
+                renderMap();
+                renderItemList();
+            }
+        });
+
+        // Slider event listeners
+        document.getElementById('xSlider').addEventListener('input', function() {
+            document.getElementById('xValue').textContent = this.value;
+            if (selectedItem !== null) {
+                items[selectedItem].x = parseInt(this.value);
+                renderMap();
+                renderItemList();
+            }
+        });
+
+        document.getElementById('ySlider').addEventListener('input', function() {
+            document.getElementById('yValue').textContent = this.value;
+            if (selectedItem !== null) {
+                items[selectedItem].y = parseInt(this.value);
+                renderMap();
+                renderItemList();
+            }
+        });
+
+        // Add item function
+        function addItem() {
+            const itemName = document.getElementById('itemName').value.trim();
+            if (itemName) {
+                const newItem = {
+                    name: itemName,
+                    x: 0,
+                    y: 0
+                };
+                
+                items.push(newItem);
+                document.getElementById('itemName').value = '';
+                
+                // Auto-select the newly added item
+                selectItem(items.length - 1);
+                
+                renderMap();
+                renderItemList();
+            }
+        }
+
+        // Allow Enter key to add item
+        document.getElementById('itemName').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                addItem();
+            }
+        });
+
+        // Delete selected item function
+        function deleteSelectedItem() {
+            if (selectedItem !== null) {
+                items.splice(selectedItem, 1);
+                selectedItem = null;
+                hideSelectedItemControls();
+                renderMap();
+                renderItemList();
+            }
+        }
+
+        // Handle clicking on the map background to deselect items
+        document.getElementById('perceptualMap').addEventListener('click', function(e) {
+            // Only deselect if clicking on the map background (not on an item)
+            if (e.target === this || e.target.classList.contains('axis-line') || e.target.classList.contains('axis-label')) {
+                deselectItem();
+            }
+        });
+
+        // Handle clicking outside the controls to deselect items
+        document.addEventListener('click', function(e) {
+            // Check if click is outside the controls area and not on a map item
+            const controls = document.querySelector('.controls');
+            const mapContainer = document.querySelector('.map-container');
+            const isMapItem = e.target.classList.contains('map-item');
+            
+            // Only deselect if clicking outside controls and not on a map item
+            if (!controls.contains(e.target) && !isMapItem && mapContainer.contains(e.target)) {
+                deselectItem();
+            }
+        });
+
+        // Deselect item function
+        function deselectItem() {
+            selectedItem = null;
+            hideSelectedItemControls();
+            renderMap();
+            renderItemList();
+        }
+        function selectItem(index) {
+            selectedItem = index;
+            const item = items[index];
+            
+            // Update controls
+            document.getElementById('selectedItemName').value = item.name;
+            document.getElementById('xSlider').value = item.x;
+            document.getElementById('ySlider').value = item.y;
+            document.getElementById('xValue').textContent = item.x;
+            document.getElementById('yValue').textContent = item.y;
+            
+            // Show selected item controls
+            showSelectedItemControls();
+            
+            renderMap();
+            renderItemList();
+        }
+
+        // Show/hide selected item controls
+        function showSelectedItemControls() {
+            document.getElementById('selectedItemControls').classList.add('active');
+        }
+
+        function hideSelectedItemControls() {
+            document.getElementById('selectedItemControls').classList.remove('active');
+        }
+
+        // Render map
+        function renderMap() {
+            const map = document.getElementById('perceptualMap');
+            
+            // Clear existing items
+            const existingItems = map.querySelectorAll('.map-item');
+            existingItems.forEach(item => item.remove());
+            
+            // Add items to map
+            items.forEach((item, index) => {
+                const mapItem = document.createElement('div');
+                mapItem.className = 'map-item' + (index === selectedItem ? ' selected' : '');
+                mapItem.textContent = item.name;
+                mapItem.style.left = ((item.x + 100) / 200 * 100) + '%';
+                mapItem.style.top = ((100 - item.y) / 200 * 100) + '%';
+                mapItem.addEventListener('click', () => selectItem(index));
+                map.appendChild(mapItem);
+            });
+        }
+
+        // Render item list
+        function renderItemList() {
+            const itemList = document.getElementById('itemList');
+            itemList.innerHTML = '';
+            
+            items.forEach((item, index) => {
+                const itemDiv = document.createElement('div');
+                itemDiv.className = 'item' + (index === selectedItem ? ' selected' : '');
+                itemDiv.innerHTML = `
+                    <div class="item-name">${item.name}</div>
+                    <div class="item-coords">X: ${item.x}, Y: ${item.y}</div>
+                `;
+                itemDiv.addEventListener('click', () => selectItem(index));
+                itemList.appendChild(itemDiv);
+            });
+        }
+
+        // Initial render
+        updateAxisLabels();
+        renderMap();
+        renderItemList();
+    </script>
+</body>
+</html>
