@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>BU362 -- Perceptual Mapping</title>
+    <title>Interactive Perceptual Map Creator</title>
     <style>
         * {
             margin: 0;
@@ -186,6 +186,55 @@
             font-size: 1rem;
         }
 
+        .color-picker {
+            margin-bottom: 15px;
+        }
+
+        .color-picker label {
+            display: block;
+            font-weight: 600;
+            color: #495057;
+            margin-bottom: 8px;
+        }
+
+        .color-options {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 8px;
+            max-width: 200px;
+        }
+
+        .color-option {
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            cursor: pointer;
+            border: 3px solid transparent;
+            transition: all 0.3s;
+            position: relative;
+        }
+
+        .color-option:hover {
+            transform: scale(1.1);
+        }
+
+        .color-option.selected {
+            border-color: #333;
+            transform: scale(1.2);
+        }
+
+        .color-option.selected::after {
+            content: "✓";
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            color: white;
+            font-weight: bold;
+            font-size: 14px;
+            text-shadow: 0 0 3px rgba(0,0,0,0.8);
+        }
+
         .sliders {
             margin-top: 10px;
         }
@@ -243,6 +292,9 @@
             border-left: 4px solid #4facfe;
             cursor: pointer;
             transition: all 0.3s;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
         }
 
         .item:hover {
@@ -255,6 +307,10 @@
             border-left-color: #2196f3;
         }
 
+        .item-info {
+            flex: 1;
+        }
+
         .item-name {
             font-weight: 600;
             color: #495057;
@@ -264,6 +320,15 @@
         .item-coords {
             font-size: 0.8rem;
             color: #6c757d;
+        }
+
+        .item-color-indicator {
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            margin-right: 10px;
+            border: 2px solid #fff;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.2);
         }
 
         .delete-btn {
@@ -380,8 +445,8 @@
 
         .map-item.selected {
             border-color: #fff;
-            background: linear-gradient(135deg, #2196f3 0%, #21cbf3 100%);
-            box-shadow: 0 0 20px rgba(33, 150, 243, 0.5);
+            box-shadow: 0 0 20px rgba(255, 255, 255, 0.8);
+            transform: translate(-50%, -50%) scale(1.05);
         }
 
         @media (max-width: 1200px) {
@@ -410,8 +475,8 @@
 <body>
     <div class="container">
         <div class="header">
-            <h1>BU362: Perceptual Map Creator</h1>
-            <p>Customize your perceptual map</p>
+            <h1>Perceptual Map Creator</h1>
+            <p>Create interactive perceptual maps with custom axes and positioning</p>
         </div>
         
         <div class="main-content">
@@ -453,6 +518,11 @@
                                 <input type="text" id="selectedItemName" placeholder="Item name">
                             </div>
                             
+                            <div class="color-picker">
+                                <label>Item Color:</label>
+                                <div class="color-options" id="colorOptions"></div>
+                            </div>
+                            
                             <div class="sliders">
                                 <div class="slider-group">
                                     <label>X Position: <span id="xValue">0</span></label>
@@ -489,9 +559,53 @@
         let items = [];
         let selectedItem = null;
 
-        // Initialize with some sample data
-        items = [
+        // Define 8 distinct color options
+        const colorOptions = [
+            { name: 'Red', gradient: 'linear-gradient(135deg, #ff6b6b 0%, #ff5252 100%)' },
+            { name: 'Blue', gradient: 'linear-gradient(135deg, #4facfe 0%, #00f2fe 100%)' },
+            { name: 'Green', gradient: 'linear-gradient(135deg, #43e97b 0%, #38f9d7 100%)' },
+            { name: 'Purple', gradient: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)' },
+            { name: 'Orange', gradient: 'linear-gradient(135deg, #feca57 0%, #ff9f43 100%)' },
+            { name: 'Pink', gradient: 'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)' },
+            { name: 'Teal', gradient: 'linear-gradient(135deg, #4ecdc4 0%, #44a08d 100%)' },
+            { name: 'Yellow', gradient: 'linear-gradient(135deg, #ffecd2 0%, #fcb69f 100%)' }
         ];
+
+        // Initialize with empty items array
+        items = [];
+
+        // Initialize color picker
+        function initializeColorPicker() {
+            const colorOptionsContainer = document.getElementById('colorOptions');
+            colorOptionsContainer.innerHTML = '';
+            
+            colorOptions.forEach((color, index) => {
+                const colorDiv = document.createElement('div');
+                colorDiv.className = 'color-option';
+                colorDiv.style.background = color.gradient;
+                colorDiv.title = color.name;
+                colorDiv.addEventListener('click', () => selectColor(index));
+                colorOptionsContainer.appendChild(colorDiv);
+            });
+        }
+
+        // Select color function
+        function selectColor(colorIndex) {
+            if (selectedItem !== null) {
+                items[selectedItem].color = colorIndex;
+                updateColorSelection();
+                renderMap();
+                renderItemList();
+            }
+        }
+
+        // Update color selection visual feedback
+        function updateColorSelection() {
+            const colorDivs = document.querySelectorAll('.color-option');
+            colorDivs.forEach((div, index) => {
+                div.classList.toggle('selected', selectedItem !== null && items[selectedItem].color === index);
+            });
+        }
 
         // Update axis labels automatically
         function updateAxisLabels() {
@@ -546,7 +660,8 @@
                 const newItem = {
                     name: itemName,
                     x: 0,
-                    y: 0
+                    y: 0,
+                    color: Math.floor(Math.random() * colorOptions.length) // Random color for new items
                 };
                 
                 items.push(newItem);
@@ -606,6 +721,7 @@
             renderMap();
             renderItemList();
         }
+
         function selectItem(index) {
             selectedItem = index;
             const item = items[index];
@@ -616,6 +732,9 @@
             document.getElementById('ySlider').value = item.y;
             document.getElementById('xValue').textContent = item.x;
             document.getElementById('yValue').textContent = item.y;
+            
+            // Update color selection
+            updateColorSelection();
             
             // Show selected item controls
             showSelectedItemControls();
@@ -648,7 +767,15 @@
                 mapItem.textContent = item.name;
                 mapItem.style.left = ((item.x + 100) / 200 * 100) + '%';
                 mapItem.style.top = ((100 - item.y) / 200 * 100) + '%';
-                mapItem.addEventListener('click', () => selectItem(index));
+                
+                // Apply color
+                const colorIndex = item.color || 0;
+                mapItem.style.background = colorOptions[colorIndex].gradient;
+                
+                mapItem.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    selectItem(index);
+                });
                 map.appendChild(mapItem);
             });
         }
@@ -661,16 +788,27 @@
             items.forEach((item, index) => {
                 const itemDiv = document.createElement('div');
                 itemDiv.className = 'item' + (index === selectedItem ? ' selected' : '');
-                itemDiv.innerHTML = `
+                
+                const colorIndicator = document.createElement('div');
+                colorIndicator.className = 'item-color-indicator';
+                colorIndicator.style.background = colorOptions[item.color || 0].gradient;
+                
+                const itemInfo = document.createElement('div');
+                itemInfo.className = 'item-info';
+                itemInfo.innerHTML = `
                     <div class="item-name">${item.name}</div>
                     <div class="item-coords">X: ${item.x}, Y: ${item.y}</div>
                 `;
+                
+                itemDiv.appendChild(colorIndicator);
+                itemDiv.appendChild(itemInfo);
                 itemDiv.addEventListener('click', () => selectItem(index));
                 itemList.appendChild(itemDiv);
             });
         }
 
         // Initial render
+        initializeColorPicker();
         updateAxisLabels();
         renderMap();
         renderItemList();
